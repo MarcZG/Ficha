@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>FichajeApp Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+body{font-family:'IBM Plex Mono',monospace;background:#0a0f1e;color:#f1f5f9;min-height:100vh}
+header{background:#0d1526;border-bottom:1px solid #1e293b;padding:18px 20px 0;position:sticky;top:0;z-index:10}
+.header-inner{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.logo{font-size:20px;font-weight:700;color:#38bdf8}
+.sub{font-size:11px;color:#475569;margin-top:3px}
+.pill{font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid;display:inline-block}
+.pill-green{background:#22c55e22;color:#22c55e;border-color:#22c55e44}
+.pill-yellow{background:#f59e0b22;color:#f59e0b;border-color:#f59e0b44}
+.pill-red{background:#ef444422;color:#ef4444;border-color:#ef444444}
+.tabs{display:flex;gap:2px;overflow-x:auto}
+.tab-btn{padding:9px 14px;border:none;cursor:pointer;font-family:inherit;font-size:12px;background:transparent;color:#475569;border-bottom:2px solid transparent;white-space:nowrap}
+.tab-btn.active{background:#38bdf815;color:#38bdf8;border-bottom:2px solid #38bdf8}
+main{padding:20px;max-width:1000px;margin:0 auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.card{background:#0d1526;border:1px solid #1e293b;border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:10px;animation:fadein .3s}
+.card.checked{border-color:#166534;box-shadow:0 0 18px #16a34a28}
+.avatar{width:48px;height:48px;border-radius:10px;background:#1e293b;color:#64748b;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700}
+.avatar.checked{background:#166534;color:#4ade80}
+.card-name{font-weight:700;font-size:15px;margin-bottom:2px}
+.card-role{color:#64748b;font-size:11px;margin-bottom:4px}
+.card-status{font-size:12px;font-weight:600}
+.card-status.in{color:#4ade80}.card-status.out{color:#f87171}
+.card-task{font-size:11px;color:#94a3b8;margin-top:2px;animation:pulse 2s infinite}
+.card-last{font-size:10px;color:#475569;margin-top:2px}
+.card-hours{font-size:11px;color:#f59e0b;margin-top:2px}
+.ficha-btn{padding:9px 0;border-radius:7px;border:none;cursor:pointer;font-weight:700;font-size:12px;font-family:inherit;color:#fff}
+.ficha-btn.entrada{background:#16a34a}.ficha-btn.salida{background:#dc2626}
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:#000000aa;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:#0d1526;border:1px solid #334155;border-radius:16px;padding:24px;max-width:420px;width:100%;animation:fadein .2s}
+.modal h2{font-size:15px;margin-bottom:6px}
+.modal-sub{font-size:12px;color:#64748b;margin-bottom:18px}
+.opt-btn{width:100%;text-align:left;padding:11px 14px;margin-bottom:8px;border-radius:8px;border:1px solid #1e293b;background:#0a0f1e;color:#f1f5f9;font-family:inherit;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px}
+.opt-btn:hover{border-color:#38bdf8;background:#38bdf811}
+.badge{margin-left:auto;font-size:10px;color:#475569}
+.modal-footer{display:flex;gap:8px;margin-top:16px}
+.btn-back{padding:10px 16px;border:1px solid #334155;border-radius:8px;background:transparent;color:#64748b;font-family:inherit;font-size:13px;cursor:pointer}
+.btn-cancel{padding:10px 16px;border:1px solid #334155;border-radius:8px;background:transparent;color:#64748b;font-family:inherit;font-size:13px;cursor:pointer}
+.bc{font-size:11px;color:#38bdf8;margin-bottom:12px}
+/* TABS CONTENT */
+.section-title{font-size:12px;font-weight:700;color:#38bdf8;margin-bottom:14px;letter-spacing:1.5px;text-transform:uppercase}
+.empty{color:#475569;font-size:13px;padding:16px 0}
+.tbl{background:#0d1526;border:1px solid #1e293b;border-radius:10px;overflow:hidden;margin-bottom:8px}
+.tbl-head,.tbl-row{display:grid;padding:9px 14px;font-size:12px;gap:8px;align-items:center}
+.tbl-head{background:#0a0f1e;font-size:10px;color:#475569;letter-spacing:1px;text-transform:uppercase}
+.tbl-row{border-top:1px solid #1e293b}
+.proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.proj-card{background:#0d1526;border:1px solid #1e293b;border-radius:12px;padding:18px}
+.proj-card h3{font-size:14px;font-weight:700;margin-bottom:4px}
+.proj-cat{font-size:10px;color:#475569;margin-bottom:12px;text-transform:uppercase;letter-spacing:1px}
+.sub-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #1e293b22;font-size:12px}
+.sub-row:last-child{border-bottom:none}
+.sub-name{color:#94a3b8}.sub-hours{color:#f59e0b;font-weight:600}
+.bar-bg{height:4px;background:#1e293b;border-radius:2px;margin-top:10px}
+.bar-fill{height:4px;background:#38bdf8;border-radius:2px}
+.week-card{background:#0d1526;border:1px solid #1e293b;border-radius:12px;padding:18px;margin-bottom:12px}
+.week-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.week-name{font-weight:700;font-size:14px}
+.week-hours{font-size:22px;font-weight:700}
+.week-hours.ok{color:#4ade80}.week-hours.warn{color:#f59e0b}.week-hours.low{color:#f87171}
+.goal-bar{height:6px;background:#1e293b;border-radius:3px;margin-bottom:4px}
+.goal-fill{height:6px;border-radius:3px}
+.goal-label{font-size:10px;color:#475569}
+.cfg-box{background:#0d1526;border:1px solid #1e293b;border-radius:12px;padding:18px;margin-bottom:14px}
+.cfg-title{font-size:12px;font-weight:700;color:#38bdf8;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:12px}
+.cfg-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid #1e293b}
+.cfg-row:last-of-type{border-bottom:none}
+.cfg-label{flex:1;font-size:13px}
+.cfg-sub{font-size:11px;color:#475569}
+input,textarea{background:#0a0f1e;border:1px solid #334155;border-radius:6px;padding:7px 11px;color:#f1f5f9;font-family:inherit;font-size:12px;outline:none}
+.btn{padding:5px 11px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:11px}
+.b-edit{border:1px solid #334155;background:transparent;color:#94a3b8}
+.b-del{border:1px solid #7f1d1d;background:transparent;color:#f87171}
+.b-save{border:none;background:#16a34a;color:#fff;font-weight:700}
+.b-cancel{border:1px solid #334155;background:transparent;color:#64748b}
+.btn-add{width:100%;padding:10px;border-radius:8px;border:1px dashed #334155;background:transparent;color:#38bdf8;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;margin-top:8px}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header>
+    <div class="header-inner">
+      <div>
+        <div class="logo">⏱ FichajeApp Pro</div>
+        <div class="sub" id="sub-date"></div>
+      </div>
+      <div id="status-pill"></div>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('fichaje')">🏢 Fichaje</button>
+      <button class="tab-btn" onclick="switchTab('semana')">📊 Semana</button>
+      <button class="tab-btn" onclick="switchTab('proyectos')">🗂 Proyectos</button>
+      <button class="tab-btn" onclick="switchTab('historial')">📋 Historial</button>
+      <button class="tab-btn" onclick="switchTab('config')">⚙️ Config</button>
+    </div>
+  </header>
+  <main>
+    <div id="tab-fichaje"><div class="grid" id="grid"></div></div>
+    <div id="tab-semana"    class="hidden"><div id="semana-content"></div></div>
+    <div id="tab-proyectos" class="hidden"><div id="proyectos-content"></div></div>
+    <div id="tab-historial" class="hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="section-title" style="margin-bottom:0">Historial</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn b-edit" onclick="exportCSV()" style="color:#38bdf8">⬇ CSV</button>
+          <button class="btn b-edit" onclick="exportPDF()" style="color:#a78bfa">⬇ PDF</button>
+        </div>
+      </div>
+      <div id="hist-content"></div>
+    </div>
+    <div id="tab-config" class="hidden"><div id="config-content"></div></div>
+  </main>
+</div>
+
+<!-- MODAL: step 1 categoría -->
+<div class="modal-bg hidden" id="m-cat">
+  <div class="modal">
+    <h2 id="m-emp-label">¿Qué vas a hacer?</h2>
+    <div class="modal-sub">Selecciona una categoría</div>
+    <div id="m-cat-opts"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeAllModals()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: step 2 subcategoría -->
+<div class="modal-bg hidden" id="m-sub">
+  <div class="modal">
+    <div class="bc" id="m-bc1"></div>
+    <h2>Selecciona subcategoría</h2>
+    <div class="modal-sub" id="m-sub-label"></div>
+    <div id="m-sub-opts"></div>
+    <div class="modal-footer">
+      <button class="btn-back" onclick="openStep1()">← Atrás</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: step 3 tarea -->
+<div class="modal-bg hidden" id="m-task">
+  <div class="modal">
+    <div class="bc" id="m-bc2"></div>
+    <h2>¿A qué te vas a dedicar?</h2>
+    <div class="modal-sub"></div>
+    <div id="m-task-opts"></div>
+    <div class="modal-footer">
+      <button class="btn-back" onclick="openStep2()">← Atrás</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────
+var db = {
+  employees: [
+    {id:1, name:'Ana García',   role:'Diseñadora'},
+    {id:2, name:'Carlos López', role:'Desarrollador'},
+    {id:3, name:'Marta Ruiz',   role:'Product Manager'}
+  ],
+  categories: [
+    {id:'c1', name:'Proyectos', icon:'📐', subs:[
+      {id:'c1s1', name:'Proyecto A', tasks:['Modelado','Mobiliario','Postproducción','Cambios','Brochure']},
+      {id:'c1s2', name:'Proyecto B', tasks:['Modelado','Mobiliario','Postproducción','Cambios','Brochure']},
+      {id:'c1s3', name:'Proyecto C', tasks:['Modelado','Mobiliario','Postproducción','Cambios','Brochure']}
+    ]},
+    {id:'c2', name:'Reuniones', icon:'🤝', subs:[
+      {id:'c2s1', name:'Interna',  tasks:['Planificación','Seguimiento','Formación']},
+      {id:'c2s2', name:'Cliente',  tasks:['Presentación','Revisión','Feedback']}
+    ]},
+    {id:'c3', name:'Administración', icon:'📁', subs:[
+      {id:'c3s1', name:'Gestión', tasks:['Facturas','Presupuestos','Contratos']},
+      {id:'c3s2', name:'RRHH',    tasks:['Nóminas','Formación','Evaluaciones']}
+    ]}
+  ],
+  records: []
+};
+
+var GOAL = 30;
+var currentTab = 'fichaje';
+var cfgState   = {};
+
+// Modal selections (indices)
+var mEmp = null;  // employee object
+var mCat = null;  // category object
+var mSub = null;  // sub object
+
+// ── UTILS ─────────────────────────────────────────────────────────
+function nowISO()  { return new Date().toISOString(); }
+function today()   { return new Date().toLocaleDateString('es-ES'); }
+function fmtDate(iso){ return new Date(iso).toLocaleDateString('es-ES'); }
+function fmtTime(iso){ return new Date(iso).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}); }
+function fmt(iso)    { return new Date(iso).toLocaleString('es-ES',{dateStyle:'short',timeStyle:'short'}); }
+function durH(a,b)   { return Math.round((new Date(b)-new Date(a))/36000)/100; }
+
+function getMonday() {
+  var d = new Date(); var day = d.getDay();
+  d.setDate(d.getDate() - (day===0 ? 6 : day-1));
+  d.setHours(0,0,0,0); return d;
+}
+function inThisWeek(iso) {
+  var mon = getMonday();
+  var sun = new Date(mon); sun.setDate(mon.getDate()+6); sun.setHours(23,59,59,999);
+  var d = new Date(iso);
+  return d >= mon && d <= sun;
+}
+
+// ── STATUS ────────────────────────────────────────────────────────
+function setStatus(s, msg) {
+  var el = document.getElementById('status-pill');
+  if (s==='ok')   el.innerHTML = '<span class="pill pill-green">● Local</span>';
+  if (s==='save') el.innerHTML = '<span class="pill pill-yellow">Guardando…</span>';
+  if (s==='err')  el.innerHTML = '<span class="pill pill-red">⚠ '+(msg||'')+'</span>';
+}
+
+// ── TABS ──────────────────────────────────────────────────────────
+function switchTab(name) {
+  currentTab = name; cfgState = {};
+  var tabs = ['fichaje','semana','proyectos','historial','config'];
+  document.querySelectorAll('.tab-btn').forEach(function(b,i){
+    b.classList.toggle('active', tabs[i]===name);
+  });
+  tabs.forEach(function(t){
+    document.getElementById('tab-'+t).classList.toggle('hidden', t!==name);
+  });
+  render();
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────
+function activeRecord(empId) {
+  for (var i=0; i<db.records.length; i++) {
+    if (db.records[i].employeeId===empId && !db.records[i].endTime) return db.records[i];
+  }
+  return null;
+}
+function lastRecord(empId) {
+  var found = null;
+  for (var i=0; i<db.records.length; i++) {
+    var r = db.records[i];
+    if (r.employeeId===empId) {
+      if (!found || new Date(r.startTime)>new Date(found.startTime)) found=r;
+    }
+  }
+  return found;
+}
+function weekHours(empId) {
+  var total = 0;
+  for (var i=0; i<db.records.length; i++) {
+    var r = db.records[i];
+    if (r.employeeId===empId && r.endTime && inThisWeek(r.startTime))
+      total += durH(r.startTime, r.endTime);
+  }
+  return total;
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────
+function closeAllModals() {
+  document.getElementById('m-cat').classList.add('hidden');
+  document.getElementById('m-sub').classList.add('hidden');
+  document.getElementById('m-task').classList.add('hidden');
+  mEmp = null; mCat = null; mSub = null;
+}
+
+function openFichajeModal(empId) {
+  // find employee
+  mEmp = null;
+  for (var i=0; i<db.employees.length; i++) {
+    if (db.employees[i].id === empId) { mEmp = db.employees[i]; break; }
+  }
+  if (!mEmp) return;
+  mCat = null; mSub = null;
+  openStep1();
+}
+
+function openStep1() {
+  document.getElementById('m-sub').classList.add('hidden');
+  document.getElementById('m-task').classList.add('hidden');
+  document.getElementById('m-emp-label').textContent = '¡Hola ' + mEmp.name.split(' ')[0] + '! ¿Qué vas a hacer?';
+  var html = '';
+  for (var i=0; i<db.categories.length; i++) {
+    var cat = db.categories[i];
+    html += '<button class="opt-btn" data-ci="'+i+'">'
+          + cat.icon + ' ' + cat.name
+          + '<span class="badge">'+cat.subs.length+' subcategorías</span>'
+          + '</button>';
+  }
+  var box = document.getElementById('m-cat-opts');
+  box.innerHTML = html;
+  // attach events
+  var btns = box.querySelectorAll('.opt-btn');
+  for (var j=0; j<btns.length; j++) {
+    btns[j].addEventListener('click', function() {
+      var ci = parseInt(this.getAttribute('data-ci'));
+      mCat = db.categories[ci];
+      openStep2();
+    });
+  }
+  document.getElementById('m-cat').classList.remove('hidden');
+}
+
+function openStep2() {
+  document.getElementById('m-cat').classList.add('hidden');
+  document.getElementById('m-task').classList.add('hidden');
+  document.getElementById('m-bc1').textContent = mCat.icon + ' ' + mCat.name;
+  document.getElementById('m-sub-label').textContent = mCat.name;
+  var html = '';
+  for (var i=0; i<mCat.subs.length; i++) {
+    var sub = mCat.subs[i];
+    html += '<button class="opt-btn" data-si="'+i+'">'
+          + '📂 ' + sub.name
+          + '<span class="badge">'+sub.tasks.length+' tareas</span>'
+          + '</button>';
+  }
+  var box = document.getElementById('m-sub-opts');
+  box.innerHTML = html;
+  var btns = box.querySelectorAll('.opt-btn');
+  for (var j=0; j<btns.length; j++) {
+    btns[j].addEventListener('click', function() {
+      var si = parseInt(this.getAttribute('data-si'));
+      mSub = mCat.subs[si];
+      openStep3();
+    });
+  }
+  document.getElementById('m-sub').classList.remove('hidden');
+}
+
+function openStep3() {
+  document.getElementById('m-sub').classList.add('hidden');
+  document.getElementById('m-bc2').textContent = mCat.icon + ' ' + mCat.name + ' › ' + mSub.name;
+  var html = '';
+  for (var i=0; i<mSub.tasks.length; i++) {
+    html += '<button class="opt-btn" data-ti="'+i+'">⚡ ' + mSub.tasks[i] + '</button>';
+  }
+  var box = document.getElementById('m-task-opts');
+  box.innerHTML = html;
+  var btns = box.querySelectorAll('.opt-btn');
+  for (var j=0; j<btns.length; j++) {
+    btns[j].addEventListener('click', function() {
+      var ti   = parseInt(this.getAttribute('data-ti'));
+      // copy everything NOW
+      var empId    = mEmp.id;
+      var empName  = mEmp.name;
+      var catId    = mCat.id;
+      var catName  = mCat.name;
+      var catIcon  = mCat.icon;
+      var subId    = mSub.id;
+      var subName  = mSub.name;
+      var task     = mSub.tasks[ti];
+      closeAllModals();
+      registrarEntrada(empId, empName, catId, catName, catIcon, subId, subName, task);
+    });
+  }
+  document.getElementById('m-task').classList.remove('hidden');
+}
+
+function registrarEntrada(empId, empName, catId, catName, catIcon, subId, subName, task) {
+  var rec = {
+    id:        Date.now(),
+    employeeId:   empId,
+    employeeName: empName,
+    categoryId:   catId,
+    categoryName: catName,
+    categoryIcon: catIcon,
+    subId:        subId,
+    subName:      subName,
+    task:         task,
+    startTime:    nowISO(),
+    endTime:      null
+  };
+  db.records.push(rec);
+  render();
+}
+
+function registrarSalida(empId) {
+  for (var i=0; i<db.records.length; i++) {
+    if (db.records[i].employeeId===empId && !db.records[i].endTime) {
+      db.records[i].endTime = nowISO();
+      break;
+    }
+  }
+  render();
+}
+
+// ── RENDER ────────────────────────────────────────────────────────
+function render() {
+  document.getElementById('sub-date').textContent = today();
+  setStatus('ok');
+  if (currentTab==='fichaje')   renderFichaje();
+  if (currentTab==='semana')    renderSemana();
+  if (currentTab==='proyectos') renderProyectos();
+  if (currentTab==='historial') renderHistorial();
+  if (currentTab==='config')    renderConfig();
+}
+
+function renderFichaje() {
+  var html = '';
+  for (var i=0; i<db.employees.length; i++) {
+    var emp     = db.employees[i];
+    var active  = activeRecord(emp.id);
+    var last    = lastRecord(emp.id);
+    var wh      = weekHours(emp.id);
+    var pct     = Math.min(100, Math.round(wh/GOAL*100));
+    var barClr  = pct>=100?'#4ade80':pct>=60?'#f59e0b':'#38bdf8';
+    var initials= emp.name.split(' ').map(function(n){return n[0];}).join('').slice(0,2).toUpperCase();
+    var taskLine= active ? '<div class="card-task">⚡ '+active.categoryIcon+' '+active.subName+' › '+active.task+'</div>' : '';
+    var lastLine= (last&&last.endTime) ? '<div class="card-last">Último: '+fmt(last.startTime)+'</div>' : '';
+    var btn     = active
+      ? '<button class="ficha-btn salida" onclick="registrarSalida('+emp.id+')">Registrar salida</button>'
+      : '<button class="ficha-btn entrada" onclick="openFichajeModal('+emp.id+')">Registrar entrada</button>';
+    html += '<div class="card '+(active?'checked':'')+'"><div class="avatar '+(active?'checked':'')+'">'
+          + initials+'</div><div>'
+          + '<div class="card-name">'+emp.name+'</div>'
+          + '<div class="card-role">'+emp.role+'</div>'
+          + '<div class="card-status '+(active?'in':'out')+'">'+(active?'✅ Trabajando':'🔴 Fuera')+'</div>'
+          + taskLine+lastLine
+          + '<div class="card-hours">Semana: '+wh.toFixed(1)+'h / '+GOAL+'h</div>'
+          + '<div style="height:3px;background:#1e293b;border-radius:2px;margin-top:4px">'
+          + '<div style="height:3px;width:'+pct+'%;background:'+barClr+';border-radius:2px"></div></div>'
+          + '</div>'+btn+'</div>';
+  }
+  document.getElementById('grid').innerHTML = html;
+}
+
+function renderSemana() {
+  var mon = getMonday();
+  var sun = new Date(mon); sun.setDate(mon.getDate()+6);
+  var html = '<div class="section-title">Semana '
+    +mon.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit'})
+    +' – '+sun.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit'})+'</div>';
+  for (var i=0; i<db.employees.length; i++) {
+    var emp = db.employees[i];
+    var wh  = weekHours(emp.id);
+    var pct = Math.min(100,Math.round(wh/GOAL*100));
+    var cls = wh>=GOAL?'ok':wh>=20?'warn':'low';
+    var fc  = cls==='ok'?'#4ade80':cls==='warn'?'#f59e0b':'#f87171';
+    var breakdown = {};
+    for (var j=0; j<db.records.length; j++) {
+      var r = db.records[j];
+      if (r.employeeId===emp.id && r.endTime && inThisWeek(r.startTime)) {
+        var k = r.categoryName+' › '+r.subName+' › '+r.task;
+        breakdown[k] = (breakdown[k]||0)+durH(r.startTime,r.endTime);
+      }
+    }
+    var rows = '';
+    for (var k in breakdown) rows += '<div class="sub-row"><span class="sub-name">'+k+'</span><span class="sub-hours">'+breakdown[k].toFixed(1)+'h</span></div>';
+    html += '<div class="week-card"><div class="week-header">'
+          + '<div><div class="week-name">'+emp.name+'</div><div style="font-size:11px;color:#64748b">'+emp.role+'</div></div>'
+          + '<div class="week-hours '+cls+'">'+wh.toFixed(1)+'h</div></div>'
+          + '<div class="goal-bar"><div class="goal-fill" style="width:'+pct+'%;background:'+fc+'"></div></div>'
+          + '<div class="goal-label">'+pct+'% del objetivo ('+GOAL+'h)</div>'
+          + (rows?'<div style="margin-top:12px">'+rows+'</div>':'<div style="font-size:11px;color:#475569;margin-top:8px">Sin registros esta semana.</div>')
+          + '</div>';
+  }
+  document.getElementById('semana-content').innerHTML = html;
+}
+
+function renderProyectos() {
+  var html = '';
+  for (var ci=0; ci<db.categories.length; ci++) {
+    var cat = db.categories[ci];
+    html += '<div style="margin-bottom:28px"><div class="section-title">'+cat.icon+' '+cat.name+'</div><div class="proj-grid">';
+    for (var si=0; si<cat.subs.length; si++) {
+      var sub = cat.subs[si];
+      var taskMap = {}; var totalH = 0;
+      for (var ti=0; ti<sub.tasks.length; ti++) taskMap[sub.tasks[ti]] = 0;
+      for (var ri=0; ri<db.records.length; ri++) {
+        var r = db.records[ri];
+        if (r.subId===sub.id && r.endTime) {
+          var h = durH(r.startTime,r.endTime);
+          totalH += h;
+          if (taskMap[r.task]!==undefined) taskMap[r.task]+=h;
+        }
+      }
+      var rows = '';
+      for (var t in taskMap) rows+='<div class="sub-row"><span class="sub-name">'+t+'</span><span class="sub-hours">'+taskMap[t].toFixed(1)+'h</span></div>';
+      html += '<div class="proj-card"><h3>'+sub.name+'</h3>'
+            + '<div class="proj-cat">'+cat.name+' · '+totalH.toFixed(1)+'h totales</div>'
+            + rows
+            + '<div class="bar-bg"><div class="bar-fill" style="width:'+Math.min(100,totalH/40*100).toFixed(0)+'%"></div></div>'
+            + '</div>';
+    }
+    html += '</div></div>';
+  }
+  document.getElementById('proyectos-content').innerHTML = html||'<div class="empty">Sin categorías.</div>';
+}
+
+function renderHistorial() {
+  var recs = db.records.slice().sort(function(a,b){return new Date(b.startTime)-new Date(a.startTime);});
+  if (!recs.length){document.getElementById('hist-content').innerHTML='<div class="empty">Sin registros todavía.</div>';return;}
+  var rows='';
+  for (var i=0;i<recs.length;i++){
+    var r=recs[i];
+    var dur=r.endTime?durH(r.startTime,r.endTime).toFixed(1)+'h':'<span style="color:#f59e0b">activo</span>';
+    var desc=r.categoryIcon+' '+r.categoryName+' › '+r.subName+' › <strong>'+r.task+'</strong>';
+    var when=r.endTime?' — '+fmtDate(r.startTime):' desde '+fmtTime(r.startTime);
+    rows+='<div class="tbl-row" style="grid-template-columns:1fr 2fr 70px">'
+         +'<span style="font-weight:700">'+r.employeeName+'</span>'
+         +'<span style="font-size:11px;color:#94a3b8">'+desc+when+'</span>'
+         +'<span style="font-weight:700;color:#f59e0b">'+dur+'</span></div>';
+  }
+  document.getElementById('hist-content').innerHTML='<div class="tbl"><div class="tbl-head" style="grid-template-columns:1fr 2fr 70px"><span>Empleado</span><span>Actividad</span><span>Horas</span></div>'+rows+'</div>';
+}
+
+// ── CONFIG ────────────────────────────────────────────────────────
+function renderConfig(){
+  var html='<div class="cfg-box"><div class="cfg-title">👥 Empleados</div>';
+  for(var i=0;i<db.employees.length;i++){
+    var emp=db.employees[i];
+    if(cfgState.editingEmp===emp.id){
+      html+='<div class="cfg-row"><input id="ce-name" value="'+emp.name+'" style="flex:1"/>'
+           +'<input id="ce-role" value="'+emp.role+'" style="width:130px"/>'
+           +'<button class="btn b-save" onclick="saveEmp('+emp.id+')">✓</button>'
+           +'<button class="btn b-cancel" onclick="cfgState={};render()">✕</button></div>';
+    }else{
+      html+='<div class="cfg-row"><div class="cfg-label">'+emp.name+' <span class="cfg-sub">· '+emp.role+'</span></div>'
+           +'<button class="btn b-edit" onclick="cfgState={editingEmp:'+emp.id+'};render()">Editar</button>'
+           +'<button class="btn b-del" onclick="delEmp('+emp.id+')">Eliminar</button></div>';
+    }
+  }
+  if(cfgState.addingEmp){
+    html+='<div class="cfg-row"><input id="ne-name" placeholder="Nombre" style="flex:1"/>'
+         +'<input id="ne-role" placeholder="Puesto" style="width:130px"/>'
+         +'<button class="btn b-save" onclick="addEmp()">✓</button>'
+         +'<button class="btn b-cancel" onclick="cfgState={};render()">✕</button></div>';
+  }else{
+    html+='<button class="btn-add" onclick="cfgState={addingEmp:true};render()">+ Añadir empleado</button>';
+  }
+  html+='</div>';
+
+  for(var ci=0;ci<db.categories.length;ci++){
+    var cat=db.categories[ci];
+    html+='<div class="cfg-box">';
+    if(cfgState.editingCat===cat.id){
+      html+='<div style="display:flex;gap:8px;margin-bottom:12px">'
+           +'<input id="cc-icon" value="'+cat.icon+'" style="width:55px"/>'
+           +'<input id="cc-name" value="'+cat.name+'" style="flex:1"/>'
+           +'<button class="btn b-save" onclick="saveCat(\''+cat.id+'\')">✓</button>'
+           +'<button class="btn b-cancel" onclick="cfgState={};render()">✕</button>'
+           +'<button class="btn b-del" onclick="delCat(\''+cat.id+'\')">🗑</button></div>';
+    }else{
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
+           +'<div class="cfg-title" style="margin-bottom:0">'+cat.icon+' '+cat.name+'</div>'
+           +'<button class="btn b-edit" onclick="cfgState={editingCat:\''+cat.id+'\'};render()">Editar</button></div>';
+    }
+    for(var si=0;si<cat.subs.length;si++){
+      var sub=cat.subs[si];
+      var sk=cat.id+'__'+sub.id;
+      if(cfgState.editingSub===sk){
+        html+='<div class="cfg-row" style="flex-direction:column;align-items:flex-start;gap:8px">'
+             +'<div style="display:flex;gap:8px;width:100%">'
+             +'<input id="cs-name" value="'+sub.name+'" style="flex:1"/>'
+             +'<button class="btn b-save" onclick="saveSub(\''+cat.id+'\',\''+sub.id+'\')">✓</button>'
+             +'<button class="btn b-cancel" onclick="cfgState={};render()">✕</button>'
+             +'<button class="btn b-del" onclick="delSub(\''+cat.id+'\',\''+sub.id+'\')">🗑</button></div>'
+             +'<div style="width:100%"><div style="font-size:10px;color:#64748b;margin-bottom:5px">TAREAS (una por línea)</div>'
+             +'<textarea id="cs-tasks" style="width:100%;height:90px;resize:vertical">'+sub.tasks.join('\n')+'</textarea></div></div>';
+      }else{
+        html+='<div class="cfg-row"><div class="cfg-label">📂 '+sub.name+' <span class="cfg-sub">· '+sub.tasks.join(', ')+'</span></div>'
+             +'<button class="btn b-edit" onclick="cfgState={editingSub:\''+sk+'\'};render()">Editar</button></div>';
+      }
+    }
+    var ak='add__'+cat.id;
+    if(cfgState.addingSub===ak){
+      html+='<div class="cfg-row" style="flex-direction:column;align-items:flex-start;gap:8px">'
+           +'<div style="display:flex;gap:8px;width:100%">'
+           +'<input id="ns-name" placeholder="Nombre subcategoría" style="flex:1"/>'
+           +'<button class="btn b-save" onclick="addSub(\''+cat.id+'\')">✓</button>'
+           +'<button class="btn b-cancel" onclick="cfgState={};render()">✕</button></div>'
+           +'<div style="width:100%"><div style="font-size:10px;color:#64748b;margin-bottom:5px">TAREAS (una por línea)</div>'
+           +'<textarea id="ns-tasks" placeholder="Tarea 1&#10;Tarea 2" style="width:100%;height:80px;resize:vertical"></textarea></div></div>'
+           +'</div>';
+    }else{
+      html+='<button class="btn-add" onclick="cfgState={addingSub:\''+ak+'\'};render()">+ Añadir subcategoría</button></div>';
+    }
+  }
+  if(cfgState.addingCat){
+    html+='<div class="cfg-box"><div class="cfg-title">Nueva categoría</div>'
+         +'<div class="cfg-row"><input id="nc-icon" value="📌" style="width:55px"/>'
+         +'<input id="nc-name" placeholder="Nombre" style="flex:1"/>'
+         +'<button class="btn b-save" onclick="addCat()">✓</button>'
+         +'<button class="btn b-cancel" onclick="cfgState={};render()">✕</button></div></div>';
+  }else{
+    html+='<button class="btn-add" onclick="cfgState={addingCat:true};render()">+ Añadir categoría</button>';
+  }
+  document.getElementById('config-content').innerHTML=html;
+}
+
+// ── CONFIG ACTIONS ────────────────────────────────────────────────
+function saveEmp(id){
+  var n=document.getElementById('ce-name').value.trim();
+  var r=document.getElementById('ce-role').value.trim();
+  if(!n)return; cfgState={};
+  for(var i=0;i<db.employees.length;i++) if(db.employees[i].id===id){db.employees[i].name=n;db.employees[i].role=r;break;}
+  render();
+}
+function addEmp(){
+  var n=document.getElementById('ne-name').value.trim();
+  var r=document.getElementById('ne-role').value.trim();
+  if(!n)return; cfgState={};
+  db.employees.push({id:Date.now(),name:n,role:r}); render();
+}
+function delEmp(id){
+  if(!confirm('¿Eliminar empleado y sus registros?'))return;
+  db.employees=db.employees.filter(function(e){return e.id!==id;});
+  db.records=db.records.filter(function(r){return r.employeeId!==id;});
+  render();
+}
+function saveCat(catId){
+  var icon=document.getElementById('cc-icon').value.trim()||'📌';
+  var name=document.getElementById('cc-name').value.trim();
+  if(!name)return; cfgState={};
+  for(var i=0;i<db.categories.length;i++) if(db.categories[i].id===catId){db.categories[i].icon=icon;db.categories[i].name=name;break;}
+  render();
+}
+function delCat(catId){
+  if(!confirm('¿Eliminar categoría?'))return; cfgState={};
+  db.categories=db.categories.filter(function(c){return c.id!==catId;}); render();
+}
+function addCat(){
+  var icon=document.getElementById('nc-icon').value.trim()||'📌';
+  var name=document.getElementById('nc-name').value.trim();
+  if(!name)return; cfgState={};
+  db.categories.push({id:'c'+Date.now(),name:name,icon:icon,subs:[]}); render();
+}
+function saveSub(catId,subId){
+  var name=document.getElementById('cs-name').value.trim();
+  var tasks=document.getElementById('cs-tasks').value.split('\n').map(function(t){return t.trim();}).filter(Boolean);
+  if(!name)return; cfgState={};
+  for(var i=0;i<db.categories.length;i++){
+    if(db.categories[i].id===catId){
+      for(var j=0;j<db.categories[i].subs.length;j++){
+        if(db.categories[i].subs[j].id===subId){db.categories[i].subs[j].name=name;db.categories[i].subs[j].tasks=tasks;break;}
+      }break;
+    }
+  }
+  render();
+}
+function delSub(catId,subId){
+  if(!confirm('¿Eliminar subcategoría?'))return; cfgState={};
+  for(var i=0;i<db.categories.length;i++){
+    if(db.categories[i].id===catId){
+      db.categories[i].subs=db.categories[i].subs.filter(function(s){return s.id!==subId;}); break;
+    }
+  }
+  render();
+}
+function addSub(catId){
+  var name=document.getElementById('ns-name').value.trim();
+  var tasks=document.getElementById('ns-tasks').value.split('\n').map(function(t){return t.trim();}).filter(Boolean);
+  if(!name)return; cfgState={};
+  for(var i=0;i<db.categories.length;i++){
+    if(db.categories[i].id===catId){db.categories[i].subs.push({id:'s'+Date.now(),name:name,tasks:tasks});break;}
+  }
+  render();
+}
+
+// ── EXPORTS ───────────────────────────────────────────────────────
+function exportCSV(){
+  var recs=db.records.slice().sort(function(a,b){return new Date(b.startTime)-new Date(a.startTime);});
+  if(!recs.length){alert('Sin registros.');return;}
+  var hdr='Empleado,Categoría,Subcategoría,Tarea,Fecha,Entrada,Salida,Horas\n';
+  var body=recs.map(function(r){
+    var dur=r.endTime?durH(r.startTime,r.endTime).toFixed(2):'';
+    return '"'+r.employeeName+'","'+r.categoryName+'","'+r.subName+'","'+r.task+'","'+fmtDate(r.startTime)+'","'+fmtTime(r.startTime)+'","'+(r.endTime?fmtTime(r.endTime):'activo')+'","'+dur+'"';
+  }).join('\n');
+  var blob=new Blob(['\uFEFF'+hdr+body],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='fichajes_'+today().replace(/\//g,'-')+'.csv';a.click();
+}
+function exportPDF(){
+  var recs=db.records.slice().sort(function(a,b){return new Date(b.startTime)-new Date(a.startTime);});
+  if(!recs.length){alert('Sin registros.');return;}
+  var win=window.open('','_blank');
+  var rows=recs.map(function(r){
+    var dur=r.endTime?durH(r.startTime,r.endTime).toFixed(1)+'h':'activo';
+    return '<tr><td>'+r.employeeName+'</td><td>'+r.categoryIcon+' '+r.categoryName+' › '+r.subName+'</td><td><strong>'+r.task+'</strong></td><td>'+fmtDate(r.startTime)+' '+fmtTime(r.startTime)+'</td><td>'+(r.endTime?fmtTime(r.endTime):'—')+'</td><td style="color:#b45309;font-weight:700">'+dur+'</td></tr>';
+  }).join('');
+  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Historial</title><style>body{font-family:Arial,sans-serif;padding:28px;color:#1e293b}h1{font-size:20px;margin-bottom:4px}p{color:#64748b;font-size:13px;margin-bottom:20px}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#0f172a;color:#f1f5f9;padding:9px 10px;text-align:left}td{padding:8px 10px;border-bottom:1px solid #e2e8f0}tr:nth-child(even) td{background:#f8fafc}@media print{button{display:none!important}}</style></head><body><h1>⏱ Historial de Fichajes</h1><p>Generado el '+today()+' · '+recs.length+' registros</p><table><thead><tr><th>Empleado</th><th>Área</th><th>Tarea</th><th>Entrada</th><th>Salida</th><th>Horas</th></tr></thead><tbody>'+rows+'</tbody></table><br><button onclick="window.print()" style="padding:9px 18px;background:#0f172a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">🖨 Imprimir / Guardar PDF</button></body></html>');
+  win.document.close();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
