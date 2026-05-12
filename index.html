@@ -324,8 +324,26 @@ function durH(a,b){return Math.round((new Date(b)-new Date(a))/36000)/100;}
 function clone(o){return JSON.parse(JSON.stringify(o));}
 function getMonday(){var d=new Date(),day=d.getDay();d.setDate(d.getDate()-(day===0?6:day-1));d.setHours(0,0,0,0);return d;}
 function inThisWeek(iso){var mon=getMonday(),sun=new Date(mon);sun.setDate(mon.getDate()+6);sun.setHours(23,59,59,999);var d=new Date(iso);return d>=mon&&d<=sun;}
-function sanitize(raw){if(!raw)return clone(DEFAULT);return{employees:Array.isArray(raw.employees)?raw.employees:clone(DEFAULT.employees),categories:Array.isArray(raw.categories)?raw.categories:clone(DEFAULT.categories),records:Array.isArray(raw.records)?raw.records:[]};}
-
+function sanitize(raw){
+  if(!raw) return clone(DEFAULT);
+  var emps  = Array.isArray(raw.employees)   ? raw.employees   : Object.values(raw.employees  ||{});
+  var recs  = Array.isArray(raw.records)     ? raw.records     : Object.values(raw.records    ||{});
+  var cats  = Array.isArray(raw.categories)  ? raw.categories  : Object.values(raw.categories ||{});
+  // Asegurar que cada cat.subs también es array
+  cats = cats.map(function(c){
+    var subs = Array.isArray(c.subs) ? c.subs : Object.values(c.subs||{});
+    subs = subs.map(function(s){
+      var tasks = Array.isArray(s.tasks) ? s.tasks : Object.values(s.tasks||{});
+      return Object.assign({},s,{tasks:tasks});
+    });
+    return Object.assign({},c,{subs:subs});
+  });
+  return {
+    employees:  emps.length  ? emps  : clone(DEFAULT.employees),
+    categories: cats.length  ? cats  : clone(DEFAULT.categories),
+    records:    recs
+  };
+}
 function initFirebase(){
   try{
     firebase.initializeApp(firebaseConfig);
