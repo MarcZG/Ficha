@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Ficha Archviz Mallorca</title>
+<title>FichajeApp</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -157,7 +157,7 @@ input::placeholder,textarea::placeholder{color:var(--muted2)}
 <div id="app" class="hidden">
   <header>
     <div class="header-top">
-      <div class="logo">Archviz Mallorca</div>
+      <div class="logo">Fichaje</div>
       <div class="status-area">
         <div class="date-label" id="sub-date"></div>
         <div id="status-area-inner" style="display:flex;align-items:center;gap:8px">
@@ -526,15 +526,14 @@ function registrarSalida(empId){
 }
 
 function render(fromFirebase){
-  document.getElementById('sub-date').textContent=today();
+  var dateEl=document.getElementById('sub-date');
+  if(dateEl) dateEl.textContent=today();
   if(currentTab==='fichaje')   renderFichaje();
-  if(currentTab==='semana')    renderSemana();
-  if(currentTab==='proyectos') renderProyectos();
-  if(currentTab==='historial') renderHistorial();
-  // Si el update viene de Firebase y el usuario está editando algo en Config, no re-renderizar
-  if(currentTab==='config'){
-    var editing = Object.keys(cfgState).length > 0;
-    if(fromFirebase && editing) return;
+  else if(currentTab==='semana')    renderSemana();
+  else if(currentTab==='proyectos') renderProyectos();
+  else if(currentTab==='historial') renderHistorial();
+  else if(currentTab==='config'){
+    if(fromFirebase && Object.keys(cfgState).length>0) return;
     renderConfig();
   }
 }
