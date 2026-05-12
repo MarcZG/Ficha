@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>FichajeApp Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+body{font-family:'IBM Plex Mono',monospace;background:#0a0f1e;color:#f1f5f9;min-height:100vh}
+
+/* HEADER */
+header{background:#0d1526;border-bottom:1px solid #1e293b;padding:18px 20px 0;position:sticky;top:0;z-index:10}
+.header-inner{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.logo{font-size:20px;font-weight:700;color:#38bdf8;letter-spacing:-.5px}
+.sub{font-size:11px;color:#475569;margin-top:3px}
+.pill{font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid;display:inline-block}
+.pill-green{background:#22c55e22;color:#22c55e;border-color:#22c55e44}
+.pill-yellow{background:#f59e0b22;color:#f59e0b;border-color:#f59e0b44}
+.pill-red{background:#ef444422;color:#ef4444;border-color:#ef444444}
+
+.tabs{display:flex;gap:2px;overflow-x:auto}
+.tab-btn{padding:9px 14px;border:none;cursor:pointer;font-family:inherit;font-size:12px;background:transparent;color:#475569;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap}
+.tab-btn.active{background:#38bdf815;color:#38bdf8;border-bottom:2px solid #38bdf8}
+
+main{padding:20px;max-width:1000px;margin:0 auto}
+
+/* CARDS FICHAJE */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.card{background:#0d1526;border:1px solid #1e293b;border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:10px;animation:fadein .3s ease}
+.card.checked{border-color:#166534;box-shadow:0 0 18px #16a34a28}
+.avatar{width:48px;height:48px;border-radius:10px;background:#1e293b;color:#64748b;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700}
+.avatar.checked{background:#166534;color:#4ade80}
+.card-name{font-weight:700;font-size:15px;margin-bottom:2px}
+.card-role{color:#64748b;font-size:11px;margin-bottom:4px}
+.card-status{font-size:12px;font-weight:600}
+.card-status.in{color:#4ade80}
+.card-status.out{color:#f87171}
+.card-task{font-size:11px;color:#94a3b8;margin-top:2px;animation:pulse 2s infinite}
+.card-last{font-size:10px;color:#475569;margin-top:2px}
+.card-hours{font-size:11px;color:#f59e0b;margin-top:2px}
+.ficha-btn{padding:9px 0;border-radius:7px;border:none;cursor:pointer;font-weight:700;font-size:12px;font-family:inherit;color:#fff;transition:opacity .2s}
+.ficha-btn:disabled{opacity:.5;cursor:not-allowed}
+.ficha-btn.entrada{background:#16a34a}
+.ficha-btn.salida{background:#dc2626}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:#00000088;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:#0d1526;border:1px solid #1e293b;border-radius:16px;padding:24px;max-width:420px;width:100%;animation:fadein .2s ease}
+.modal h2{font-size:15px;color:#f1f5f9;margin-bottom:6px}
+.modal p{font-size:12px;color:#64748b;margin-bottom:18px}
+.modal-step{display:none}
+.modal-step.active{display:block}
+.opt-btn{width:100%;text-align:left;padding:11px 14px;margin-bottom:8px;border-radius:8px;border:1px solid #1e293b;background:#0a0f1e;color:#f1f5f9;font-family:inherit;font-size:13px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:8px}
+.opt-btn:hover{border-color:#38bdf8;background:#38bdf811}
+.opt-btn.selected{border-color:#38bdf8;background:#38bdf822;color:#38bdf8}
+.opt-btn .badge{margin-left:auto;font-size:10px;color:#475569}
+.modal-actions{display:flex;gap:8px;margin-top:16px}
+.btn-primary{flex:1;padding:10px;border:none;border-radius:8px;background:#16a34a;color:#fff;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer}
+.btn-secondary{padding:10px 16px;border:1px solid #334155;border-radius:8px;background:transparent;color:#64748b;font-family:inherit;font-size:13px;cursor:pointer}
+.breadcrumb{font-size:11px;color:#475569;margin-bottom:14px}
+.breadcrumb span{color:#38bdf8}
+
+/* HISTORIAL */
+.section-title{font-size:12px;font-weight:700;color:#38bdf8;margin-bottom:14px;letter-spacing:1.5px;text-transform:uppercase}
+.empty{color:#475569;font-size:13px;padding:16px 0}
+.table{background:#0d1526;border:1px solid #1e293b;border-radius:10px;overflow:hidden;margin-bottom:8px}
+.table-head{display:grid;grid-template-columns:1fr 1fr 100px;padding:8px 14px;background:#0a0f1e;font-size:10px;color:#475569;letter-spacing:1.2px;text-transform:uppercase}
+.table-row{display:grid;grid-template-columns:1fr 1fr 100px;padding:11px 14px;font-size:12px;border-top:1px solid #1e293b;align-items:center;gap:8px}
+.type-badge{font-size:11px;padding:2px 8px;border-radius:5px;display:inline-block}
+.type-badge.entrada{background:#16a34a30;color:#4ade80}
+.type-badge.salida{background:#dc262630;color:#f87171}
+
+/* PROYECTOS tab */
+.proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.proj-card{background:#0d1526;border:1px solid #1e293b;border-radius:12px;padding:18px;animation:fadein .3s}
+.proj-card h3{font-size:14px;font-weight:700;margin-bottom:4px}
+.proj-cat{font-size:10px;color:#475569;margin-bottom:14px;letter-spacing:1px;text-transform:uppercase}
+.sub-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #1e293b11;font-size:12px}
+.sub-row:last-child{border-bottom:none}
+.sub-name{color:#94a3b8}
+.sub-hours{color:#f59e0b;font-weight:600}
+.bar-bg{height:4px;background:#1e293b;border-radius:2px;margin-top:12px}
+.bar-fill{height:4px;background:#38bdf8;border-radius:2px;transition:width .6s}
+
+/* SEMANA */
+.week-card{background:#0d1526;border:1px solid #1e293b;border-radius:12px;padding:18px;margin-bottom:12px;animation:fadein .3s}
+.week-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.week-name{font-weight:700;font-size:14px}
+.week-hours{font-size:22px;font-weight:700}
+.week-hours.ok{color:#4ade80}
+.week-hours.warn{color:#f59e0b}
+.week-hours.low{color:#f87171}
+.goal-bar{height:6px;background:#1e293b;border-radius:3px;margin-bottom:4px}
+.goal-fill{height:6px;border-radius:3px;transition:width .6s}
+.goal-label{font-size:10px;color:#475569}
+
+/* CONFIG */
+.cfg-section{background:#0d1526;border:1px solid #1e293b;border-radius:12px;padding:18px;margin-bottom:14px}
+.cfg-title{font-size:12px;font-weight:700;color:#38bdf8;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:14px}
+.cfg-item{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid #1e293b}
+.cfg-item:last-child{border-bottom:none}
+.cfg-label{flex:1;font-size:13px}
+.cfg-sub{font-size:11px;color:#475569}
+input{background:#0a0f1e;border:1px solid #334155;border-radius:6px;padding:7px 11px;color:#f1f5f9;font-family:inherit;font-size:12px;outline:none}
+.btn{padding:6px 13px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:11px}
+.btn-edit{border:1px solid #334155;background:transparent;color:#94a3b8}
+.btn-del{border:1px solid #7f1d1d;background:transparent;color:#f87171}
+.btn-save{border:none;background:#16a34a;color:#fff;font-weight:700}
+.btn-cancel{border:1px solid #334155;background:transparent;color:#64748b}
+.btn-add{width:100%;padding:10px;border-radius:8px;border:1px dashed #334155;background:transparent;color:#38bdf8;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;margin-top:8px}
+.btn-sm{padding:4px 9px;border-radius:5px;cursor:pointer;font-family:inherit;font-size:10px}
+
+#loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh}
+.spinner{width:38px;height:38px;border:3px solid #1e293b;border-top:3px solid #38bdf8;border-radius:50%;animation:spin 1s linear infinite}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <p style="color:#94a3b8;margin-top:16px;font-size:13px;">Conectando…</p>
+</div>
+
+<div id="app" class="hidden">
+  <header>
+    <div class="header-inner">
+      <div>
+        <div class="logo">⏱ FichajeApp Pro</div>
+        <div class="sub" id="sub-date"></div>
+      </div>
+      <div id="status-pill"></div>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('fichaje')">🏢 Fichaje</button>
+      <button class="tab-btn" onclick="switchTab('semana')">📊 Semana</button>
+      <button class="tab-btn" onclick="switchTab('proyectos')">🗂 Proyectos</button>
+      <button class="tab-btn" onclick="switchTab('historial')">📋 Historial</button>
+      <button class="tab-btn" onclick="switchTab('config')">⚙️ Config</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="tab-fichaje"><div class="grid" id="grid"></div></div>
+    <div id="tab-semana" class="hidden"><div id="semana-content"></div></div>
+    <div id="tab-proyectos" class="hidden"><div id="proyectos-content"></div></div>
+    <div id="tab-historial" class="hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="section-title" style="margin-bottom:0">Historial completo</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-edit" onclick="exportCSV()" style="color:#38bdf8">⬇ CSV</button>
+          <button class="btn btn-edit" onclick="exportPDF()" style="color:#a78bfa">⬇ PDF</button>
+        </div>
+      </div>
+      <div id="hist-content"></div>
+    </div>
+    <div id="tab-config" class="hidden"><div id="config-content"></div></div>
+  </main>
+</div>
+
+<!-- MODAL FICHAJE -->
+<div class="modal-bg hidden" id="modal-bg">
+  <div class="modal">
+    <div class="modal-step active" id="step-cat">
+      <h2 id="modal-title">¿Qué vas a hacer?</h2>
+      <p id="modal-sub">Selecciona una categoría</p>
+      <div id="cat-opts"></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal()">Cancelar</button>
+      </div>
+    </div>
+    <div class="modal-step" id="step-sub">
+      <div class="breadcrumb" id="breadcrumb"></div>
+      <h2 id="modal-title2">Selecciona subcategoría</h2>
+      <p style="font-size:12px;color:#64748b;margin-bottom:18px" id="modal-sub2"></p>
+      <div id="sub-opts"></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="goBack()">← Atrás</button>
+      </div>
+    </div>
+    <div class="modal-step" id="step-task">
+      <div class="breadcrumb" id="breadcrumb2"></div>
+      <h2 id="modal-title3">Selecciona tarea</h2>
+      <p style="font-size:12px;color:#64748b;margin-bottom:18px"></p>
+      <div id="task-opts"></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="goBack2()">← Atrás</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────
+const MASTER_KEY = '$2a$10$gUeQiPb9CQCq7v6YkpvY2.oqYi2in6qh3xRhWCei6ZagkcXzdjI9a';
+const BIN_ID     = '6a01b1d4adc21f119a830073';
+const POLL_MS    = 60000;
+const BASE_URL   = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+const HEADERS    = {'Content-Type':'application/json','X-Master-Key':MASTER_KEY,'X-Bin-Versioning':'false'};
+const GOAL_HRS   = 30;
+
+// ── DEFAULT DATA ─────────────────────────────────────────────────
+const DEFAULT = {
+  employees: [
+    {id:1,name:'Ana García',role:'Diseñadora'},
+    {id:2,name:'Carlos López',role:'Desarrollador'},
+    {id:3,name:'Marta Ruiz',role:'Product Manager'},
+  ],
+  categories: [
+    {
+      id:'cat1', name:'Proyectos', icon:'📐',
+      subs: [
+        {id:'sub1a', name:'Proyecto A', tasks:['Modelado','Mobiliario','Postproducción','Cambios','Brochure']},
+        {id:'sub1b', name:'Proyecto B', tasks:['Modelado','Mobiliario','Postproducción','Cambios','Brochure']},
+        {id:'sub1c', name:'Proyecto C', tasks:['Modelado','Mobiliario','Postproducción','Cambios','Brochure']},
+      ]
+    },
+    {
+      id:'cat2', name:'Reuniones', icon:'🤝',
+      subs: [
+        {id:'sub2a', name:'Interna', tasks:['Planificación','Seguimiento','Formación']},
+        {id:'sub2b', name:'Cliente', tasks:['Presentación','Revisión','Feedback']},
+      ]
+    },
+    {
+      id:'cat3', name:'Administración', icon:'📁',
+      subs: [
+        {id:'sub3a', name:'Gestión', tasks:['Facturas','Presupuestos','Contratos']},
+        {id:'sub3b', name:'RRHH', tasks:['Nóminas','Formación','Evaluaciones']},
+      ]
+    },
+  ],
+  records: []
+};
+
+// ── STATE ────────────────────────────────────────────────────────
+let db = {employees:[],categories:[],records:[]};
+let saving = false;
+let currentTab = 'fichaje';
+// modal
+let modalEmpId = null;
+let selCat = null, selSub = null;
+// config editing
+let cfgState = {}; // {editingEmp, editingCat, addingEmp, addingCat, ...}
+
+// ── UTILS ────────────────────────────────────────────────────────
+const today   = () => new Date().toLocaleDateString('es-ES');
+const nowISO  = () => new Date().toISOString();
+const fmt     = iso => new Date(iso).toLocaleString('es-ES',{dateStyle:'short',timeStyle:'short'});
+const fmtDate = iso => new Date(iso).toLocaleDateString('es-ES');
+const fmtTime = iso => new Date(iso).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+const durH    = (a,b) => Math.round((new Date(b)-new Date(a))/36000)/100; // hours 2dp
+
+function getMondayOfWeek(d=new Date()){
+  const dt=new Date(d); const day=dt.getDay(); const diff=dt.getDate()-day+(day===0?-6:1);
+  dt.setDate(diff); dt.setHours(0,0,0,0); return dt;
+}
+function isSameWeek(iso,monday){
+  const d=new Date(iso); d.setHours(0,0,0,0);
+  const sun=new Date(monday); sun.setDate(monday.getDate()+6); sun.setHours(23,59,59,999);
+  return d>=monday && d<=sun;
+}
+
+function sanitize(raw){
+  return {
+    employees: Array.isArray(raw?.employees)  ? raw.employees  : DEFAULT.employees,
+    categories:Array.isArray(raw?.categories) ? raw.categories : DEFAULT.categories,
+    records:   Array.isArray(raw?.records)    ? raw.records    : [],
+  };
+}
+
+// ── JSONBIN ──────────────────────────────────────────────────────
+async function fetchData(isInit=false){
+  try{
+    const res=await fetch(`${BASE_URL}/latest`,{headers:HEADERS});
+    if(!res.ok) throw new Error();
+    const j=await res.json(); db=sanitize(j.record); setStatus('online');
+  }catch{
+    if(isInit){
+      try{
+        const r2=await fetch(BASE_URL,{method:'PUT',headers:HEADERS,body:JSON.stringify(DEFAULT)});
+        db=sanitize((await r2.json()).record); setStatus('online');
+      }catch{ db=sanitize(DEFAULT); setStatus('error','Sin conexión'); }
+    } else setStatus('error','Error sync');
+  }
+  if(isInit){
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+  }
+  render();
+}
+
+async function saveData(payload){
+  saving=true; setStatus('saving'); render();
+  try{
+    const r=await fetch(BASE_URL,{method:'PUT',headers:HEADERS,body:JSON.stringify(payload)});
+    if(!r.ok) throw new Error();
+    db=sanitize((await r.json()).record); setStatus('online');
+  }catch{ setStatus('error','Error al guardar'); }
+  saving=false; render();
+}
+
+function setStatus(s,msg=''){
+  const el=document.getElementById('status-pill');
+  if(s==='online')  el.innerHTML='<span class="pill pill-green">● En línea</span>';
+  if(s==='saving')  el.innerHTML='<span class="pill pill-yellow">Guardando…</span>';
+  if(s==='error')   el.innerHTML=`<span class="pill pill-red">⚠ ${msg}</span>`;
+}
+
+// ── TABS ─────────────────────────────────────────────────────────
+function switchTab(name){
+  currentTab=name; cfgState={};
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{
+    b.classList.toggle('active',['fichaje','semana','proyectos','historial','config'][i]===name);
+  });
+  ['fichaje','semana','proyectos','historial','config'].forEach(t=>{
+    document.getElementById(`tab-${t}`).classList.toggle('hidden',t!==name);
+  });
+  render();
+}
+
+// ── FICHAJE LOGIC ─────────────────────────────────────────────────
+function getLastRecord(empId){
+  return [...db.records].filter(r=>r.employeeId===empId)
+    .sort((a,b)=>new Date(b.startTime)-new Date(a.startTime))[0]??null;
+}
+function isCheckedIn(empId){
+  const last=getLastRecord(empId);
+  return last && !last.endTime;
+}
+
+function weekHours(empId){
+  const mon=getMondayOfWeek();
+  return db.records
+    .filter(r=>r.employeeId===empId && r.endTime && isSameWeek(r.startTime,mon))
+    .reduce((acc,r)=>acc+durH(r.startTime,r.endTime),0);
+}
+
+// Open modal to select activity
+function openFichajeModal(empId){
+  modalEmpId=empId; selCat=null; selSub=null;
+  const emp=db.employees.find(e=>e.id===empId);
+  document.getElementById('modal-title').textContent=`¡Hola ${emp.name.split(' ')[0]}! ¿Qué vas a hacer?`;
+  document.getElementById('modal-sub').textContent='Selecciona una categoría';
+  showStep('cat');
+  renderCatOpts();
+  document.getElementById('modal-bg').classList.remove('hidden');
+}
+
+function renderCatOpts(){
+  document.getElementById('cat-opts').innerHTML=db.categories.map(cat=>`
+    <button class="opt-btn" onclick="selectCat('${cat.id}')">
+      <span>${cat.icon}</span> ${cat.name}
+      <span class="badge">${cat.subs.length} subcategorías</span>
+    </button>`).join('');
+}
+
+function selectCat(catId){
+  selCat=db.categories.find(c=>c.id===catId);
+  document.getElementById('breadcrumb').innerHTML=`<span>${selCat.icon} ${selCat.name}</span>`;
+  document.getElementById('modal-title2').textContent='Selecciona subcategoría';
+  document.getElementById('modal-sub2').textContent=selCat.name;
+  document.getElementById('sub-opts').innerHTML=selCat.subs.map(s=>`
+    <button class="opt-btn" onclick="selectSub('${s.id}')">
+      📂 ${s.name}
+      <span class="badge">${s.tasks.length} tareas</span>
+    </button>`).join('');
+  showStep('sub');
+}
+
+function selectSub(subId){
+  selSub=selCat.subs.find(s=>s.id===subId);
+  document.getElementById('breadcrumb2').innerHTML=`<span>${selCat.icon} ${selCat.name}</span> › <span>${selSub.name}</span>`;
+  document.getElementById('modal-title3').textContent='¿A qué te vas a dedicar?';
+  document.getElementById('task-opts').innerHTML=selSub.tasks.map(t=>`
+    <button class="opt-btn" onclick="confirmFichaje('${t}')">⚡ ${t}</button>`).join('');
+  showStep('task');
+}
+
+function showStep(s){
+  ['cat','sub','task'].forEach(x=>{
+    document.getElementById(`step-${x}`).classList.toggle('active',x===s);
+  });
+}
+function goBack(){ showStep('cat'); }
+function goBack2(){ showStep('sub'); }
+function closeModal(){ document.getElementById('modal-bg').classList.add('hidden'); modalEmpId=null; }
+
+async function confirmFichaje(task){
+  const empId   = modalEmpId;
+  const cat     = selCat;
+  const sub     = selSub;
+  closeModal();
+  const rec={
+    id:Date.now(), employeeId:empId,
+    employeeName:db.employees.find(e=>e.id===empId).name,
+    categoryId:cat.id, categoryName:cat.name, categoryIcon:cat.icon,
+    subId:sub.id, subName:sub.name,
+    task, startTime:nowISO(), endTime:null
+  };
+  await saveData({...db,records:[...db.records,rec]});
+}
+
+async function ficharSalida(empId){
+  if(saving) return;
+  const records=[...db.records];
+  const idx=records.findIndex(r=>r.employeeId===empId&&!r.endTime);
+  if(idx===-1) return;
+  records[idx]={...records[idx],endTime:nowISO()};
+  await saveData({...db,records});
+}
+
+// ── RENDER MAIN ───────────────────────────────────────────────────
+function render(){
+  document.getElementById('sub-date').textContent=`${today()} · sync cada ${POLL_MS/1000}s`;
+  if(currentTab==='fichaje')   renderFichaje();
+  if(currentTab==='semana')    renderSemana();
+  if(currentTab==='proyectos') renderProyectos();
+  if(currentTab==='historial') renderHistorial();
+  if(currentTab==='config')    renderConfig();
+}
+
+// ── FICHAJE TAB ───────────────────────────────────────────────────
+function renderFichaje(){
+  const grid=document.getElementById('grid');
+  grid.innerHTML=db.employees.map(emp=>{
+    const checked=isCheckedIn(emp.id);
+    const last=getLastRecord(emp.id);
+    const initials=emp.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+    const wh=weekHours(emp.id).toFixed(1);
+    const pct=Math.min(100,Math.round(weekHours(emp.id)/GOAL_HRS*100));
+    let activeDesc='';
+    if(checked&&last){
+      activeDesc=`<div class="card-task">⚡ ${last.categoryIcon} ${last.subName} › ${last.task}</div>`;
+    }
+    return `<div class="card ${checked?'checked':''}">
+      <div class="avatar ${checked?'checked':''}">${initials}</div>
+      <div>
+        <div class="card-name">${emp.name}</div>
+        <div class="card-role">${emp.role}</div>
+        <div class="card-status ${checked?'in':'out'}">${checked?'✅ Trabajando':'🔴 Fuera'}</div>
+        ${activeDesc}
+        ${last&&last.endTime?`<div class="card-last">Último: ${fmt(last.startTime)}</div>`:''}
+        <div class="card-hours">Semana: ${wh}h / ${GOAL_HRS}h</div>
+        <div style="height:3px;background:#1e293b;border-radius:2px;margin-top:4px">
+          <div style="height:3px;width:${pct}%;background:${pct>=100?'#4ade80':pct>=60?'#f59e0b':'#38bdf8'};border-radius:2px;transition:width .6s"></div>
+        </div>
+      </div>
+      ${checked
+        ?`<button class="ficha-btn salida" onclick="ficharSalida(${emp.id})" ${saving?'disabled':''}>Registrar salida</button>`
+        :`<button class="ficha-btn entrada" onclick="openFichajeModal(${emp.id})" ${saving?'disabled':''}>Registrar entrada</button>`
+      }
+    </div>`;
+  }).join('');
+}
+
+// ── SEMANA TAB ────────────────────────────────────────────────────
+function renderSemana(){
+  const mon=getMondayOfWeek();
+  const sun=new Date(mon); sun.setDate(mon.getDate()+6);
+  const label=`Semana ${mon.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit'})} – ${sun.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit'})}`;
+  let html=`<div class="section-title">${label}</div>`;
+  db.employees.forEach(emp=>{
+    const wh=weekHours(emp.id);
+    const pct=Math.min(100,Math.round(wh/GOAL_HRS*100));
+    const cls=wh>=GOAL_HRS?'ok':wh>=20?'warn':'low';
+    const initials=emp.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+    // breakdown by category>sub>task
+    const recs=db.records.filter(r=>r.employeeId===emp.id&&r.endTime&&isSameWeek(r.startTime,mon));
+    const breakdown={};
+    recs.forEach(r=>{
+      const key=`${r.categoryName}|${r.subName}|${r.task}`;
+      breakdown[key]=(breakdown[key]||0)+durH(r.startTime,r.endTime);
+    });
+    const rows=Object.entries(breakdown).map(([k,h])=>{
+      const [cat,sub,task]=k.split('|');
+      return `<div class="sub-row"><span class="sub-name">${cat} › ${sub} › ${task}</span><span class="sub-hours">${h.toFixed(1)}h</span></div>`;
+    }).join('');
+    html+=`<div class="week-card">
+      <div class="week-header">
+        <div>
+          <div class="week-name">${emp.name}</div>
+          <div style="font-size:11px;color:#64748b">${emp.role}</div>
+        </div>
+        <div class="week-hours ${cls}">${wh.toFixed(1)}h</div>
+      </div>
+      <div class="goal-bar"><div class="goal-fill" style="width:${pct}%;background:${cls==='ok'?'#4ade80':cls==='warn'?'#f59e0b':'#f87171'}"></div></div>
+      <div class="goal-label">${pct}% del objetivo (${GOAL_HRS}h)</div>
+      ${rows?`<div style="margin-top:12px">${rows}</div>`:'<div style="font-size:11px;color:#475569;margin-top:10px">Sin registros esta semana.</div>'}
+    </div>`;
+  });
+  document.getElementById('semana-content').innerHTML=html;
+}
+
+// ── PROYECTOS TAB ─────────────────────────────────────────────────
+function renderProyectos(){
+  let html='';
+  db.categories.forEach(cat=>{
+    html+=`<div style="margin-bottom:28px">
+      <div class="section-title">${cat.icon} ${cat.name}</div>
+      <div class="proj-grid">`;
+    cat.subs.forEach(sub=>{
+      const recs=db.records.filter(r=>r.subId===sub.id&&r.endTime);
+      const totalH=recs.reduce((a,r)=>a+durH(r.startTime,r.endTime),0);
+      const taskMap={};
+      sub.tasks.forEach(t=>{ taskMap[t]=0; });
+      recs.forEach(r=>{ if(taskMap[r.task]!==undefined) taskMap[r.task]+=durH(r.startTime,r.endTime); });
+      const rows=Object.entries(taskMap).map(([t,h])=>`
+        <div class="sub-row">
+          <span class="sub-name">${t}</span>
+          <span class="sub-hours">${h.toFixed(1)}h</span>
+        </div>`).join('');
+      const maxH=Math.max(1,...Object.values(taskMap));
+      html+=`<div class="proj-card">
+        <h3>${sub.name}</h3>
+        <div class="proj-cat">${cat.name} · ${totalH.toFixed(1)}h totales</div>
+        ${rows}
+        <div class="bar-bg"><div class="bar-fill" style="width:${Math.min(100,totalH/40*100).toFixed(0)}%"></div></div>
+      </div>`;
+    });
+    html+=`</div></div>`;
+  });
+  document.getElementById('proyectos-content').innerHTML=html||'<div class="empty">Sin categorías.</div>';
+}
+
+// ── HISTORIAL TAB ─────────────────────────────────────────────────
+function renderHistorial(){
+  const recs=[...db.records].sort((a,b)=>new Date(b.startTime)-new Date(a.startTime));
+  if(!recs.length){ document.getElementById('hist-content').innerHTML='<div class="empty">Sin registros todavía.</div>'; return; }
+  const html=`<div class="table">
+    <div class="table-head" style="grid-template-columns:1fr 2fr 90px"><span>Empleado</span><span>Actividad</span><span>Duración</span></div>
+    ${recs.map(r=>{
+      const dur=r.endTime?`${durH(r.startTime,r.endTime).toFixed(1)}h`:'<span style="color:#f59e0b">activo</span>';
+      const desc=r.endTime
+        ?`${r.categoryIcon} ${r.categoryName} › ${r.subName} › <strong>${r.task}</strong> — ${fmtDate(r.startTime)}`
+        :`${r.categoryIcon} ${r.categoryName} › ${r.subName} › <strong>${r.task}</strong> desde ${fmtTime(r.startTime)}`;
+      return `<div class="table-row" style="grid-template-columns:1fr 2fr 90px">
+        <span style="font-weight:700">${r.employeeName}</span>
+        <span style="font-size:11px;color:#94a3b8">${desc}</span>
+        <span style="font-weight:700;color:#f59e0b">${dur}</span>
+      </div>`;
+    }).join('')}
+  </div>`;
+  document.getElementById('hist-content').innerHTML=html;
+}
+
+// ── CONFIG TAB ────────────────────────────────────────────────────
+function renderConfig(){
+  let html='';
+
+  // EMPLOYEES
+  html+=`<div class="cfg-section"><div class="cfg-title">👥 Empleados</div>`;
+  db.employees.forEach(emp=>{
+    if(cfgState.editingEmp===emp.id){
+      html+=`<div class="cfg-item">
+        <input id="ce-name" value="${emp.name}" placeholder="Nombre" style="flex:1"/>
+        <input id="ce-role" value="${emp.role}" placeholder="Puesto" style="width:140px"/>
+        <button class="btn btn-save btn-sm" onclick="saveEmp(${emp.id})">✓</button>
+        <button class="btn btn-cancel btn-sm" onclick="cfgState={};render()">✕</button>
+      </div>`;
+    } else {
+      html+=`<div class="cfg-item">
+        <div class="cfg-label">${emp.name} <span class="cfg-sub">· ${emp.role}</span></div>
+        <button class="btn btn-edit btn-sm" onclick="cfgState={editingEmp:${emp.id}};render()">Editar</button>
+        <button class="btn btn-del btn-sm" onclick="delEmp(${emp.id})">Eliminar</button>
+      </div>`;
+    }
+  });
+  if(cfgState.addingEmp){
+    html+=`<div class="cfg-item">
+      <input id="ne-name" placeholder="Nombre" style="flex:1"/>
+      <input id="ne-role" placeholder="Puesto" style="width:140px"/>
+      <button class="btn btn-save btn-sm" onclick="addEmp()">✓</button>
+      <button class="btn btn-cancel btn-sm" onclick="cfgState={};render()">✕</button>
+    </div>`;
+  } else {
+    html+=`<button class="btn-add" onclick="cfgState={addingEmp:true};render()">+ Añadir empleado</button>`;
+  }
+  html+=`</div>`;
+
+  // CATEGORIES
+  db.categories.forEach(cat=>{
+    html+=`<div class="cfg-section">`;
+    if(cfgState.editingCat===cat.id){
+      html+=`<div style="display:flex;gap:8px;margin-bottom:12px">
+        <input id="cc-icon" value="${cat.icon}" style="width:60px"/>
+        <input id="cc-name" value="${cat.name}" style="flex:1"/>
+        <button class="btn btn-save btn-sm" onclick="saveCat('${cat.id}')">✓</button>
+        <button class="btn btn-cancel btn-sm" onclick="cfgState={};render()">✕</button>
+        <button class="btn btn-del btn-sm" onclick="delCat('${cat.id}')">Eliminar</button>
+      </div>`;
+    } else {
+      html+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="cfg-title" style="margin-bottom:0">${cat.icon} ${cat.name}</div>
+        <button class="btn btn-edit btn-sm" onclick="cfgState={editingCat:'${cat.id}'};render()">Editar cat.</button>
+      </div>`;
+    }
+    // SUBS
+    cat.subs.forEach(sub=>{
+      const sk=`${cat.id}|${sub.id}`;
+      if(cfgState.editingSub===sk){
+        html+=`<div class="cfg-item" style="flex-direction:column;align-items:flex-start;gap:8px">
+          <div style="display:flex;gap:8px;width:100%">
+            <input id="cs-name" value="${sub.name}" style="flex:1"/>
+            <button class="btn btn-save btn-sm" onclick="saveSub('${cat.id}','${sub.id}')">✓</button>
+            <button class="btn btn-cancel btn-sm" onclick="cfgState={};render()">✕</button>
+            <button class="btn btn-del btn-sm" onclick="delSub('${cat.id}','${sub.id}')">Eliminar</button>
+          </div>
+          <div style="width:100%">
+            <div style="font-size:10px;color:#64748b;margin-bottom:6px">TAREAS (una por línea)</div>
+            <textarea id="cs-tasks" style="width:100%;background:#0a0f1e;border:1px solid #334155;border-radius:6px;padding:8px;color:#f1f5f9;font-family:inherit;font-size:11px;height:90px;resize:vertical">${sub.tasks.join('\n')}</textarea>
+          </div>
+        </div>`;
+      } else {
+        html+=`<div class="cfg-item">
+          <div class="cfg-label">📂 ${sub.name} <span class="cfg-sub">· ${sub.tasks.join(', ')}</span></div>
+          <button class="btn btn-edit btn-sm" onclick="cfgState={editingSub:'${sk}'};render()">Editar</button>
+        </div>`;
+      }
+    });
+    const ak=`add|${cat.id}`;
+    if(cfgState.addingSub===ak){
+      html+=`<div class="cfg-item" style="flex-direction:column;align-items:flex-start;gap:8px">
+        <div style="display:flex;gap:8px;width:100%">
+          <input id="ns-name" placeholder="Nombre subcategoría" style="flex:1"/>
+          <button class="btn btn-save btn-sm" onclick="addSub('${cat.id}')">✓</button>
+          <button class="btn btn-cancel btn-sm" onclick="cfgState={};render()">✕</button>
+        </div>
+        <div style="width:100%">
+          <div style="font-size:10px;color:#64748b;margin-bottom:6px">TAREAS (una por línea)</div>
+          <textarea id="ns-tasks" placeholder="Tarea 1&#10;Tarea 2&#10;Tarea 3" style="width:100%;background:#0a0f1e;border:1px solid #334155;border-radius:6px;padding:8px;color:#f1f5f9;font-family:inherit;font-size:11px;height:80px;resize:vertical"></textarea>
+        </div>
+      </div>`;
+      html+=`</div>`;
+    } else {
+      html+=`<button class="btn-add" onclick="cfgState={addingSub:'${ak}'};render()">+ Añadir subcategoría</button></div>`;
+    }
+  });
+
+  // ADD CATEGORY
+  if(cfgState.addingCat){
+    html+=`<div class="cfg-section">
+      <div class="cfg-title">Nueva categoría</div>
+      <div class="cfg-item">
+        <input id="nc-icon" value="📌" style="width:60px"/>
+        <input id="nc-name" placeholder="Nombre" style="flex:1"/>
+        <button class="btn btn-save btn-sm" onclick="addCat()">✓</button>
+        <button class="btn btn-cancel btn-sm" onclick="cfgState={};render()">✕</button>
+      </div>
+    </div>`;
+  } else {
+    html+=`<button class="btn-add" onclick="cfgState={addingCat:true};render()">+ Añadir categoría</button>`;
+  }
+
+  document.getElementById('config-content').innerHTML=html;
+}
+
+// ── CONFIG ACTIONS ────────────────────────────────────────────────
+async function saveEmp(id){
+  const n=document.getElementById('ce-name').value.trim();
+  const r=document.getElementById('ce-role').value.trim();
+  if(!n) return;
+  cfgState={};
+  await saveData({...db,employees:db.employees.map(e=>e.id===id?{...e,name:n,role:r}:e)});
+}
+async function addEmp(){
+  const n=document.getElementById('ne-name').value.trim();
+  const r=document.getElementById('ne-role').value.trim();
+  if(!n) return;
+  cfgState={};
+  await saveData({...db,employees:[...db.employees,{id:Date.now(),name:n,role:r}]});
+}
+async function delEmp(id){
+  if(!confirm('¿Eliminar empleado y sus registros?')) return;
+  await saveData({...db,employees:db.employees.filter(e=>e.id!==id),records:db.records.filter(r=>r.employeeId!==id)});
+}
+async function saveCat(catId){
+  const icon=document.getElementById('cc-icon').value.trim()||'📌';
+  const name=document.getElementById('cc-name').value.trim();
+  if(!name) return;
+  cfgState={};
+  await saveData({...db,categories:db.categories.map(c=>c.id===catId?{...c,icon,name}:c)});
+}
+async function delCat(catId){
+  if(!confirm('¿Eliminar categoría completa?')) return;
+  cfgState={};
+  await saveData({...db,categories:db.categories.filter(c=>c.id!==catId)});
+}
+async function addCat(){
+  const icon=document.getElementById('nc-icon').value.trim()||'📌';
+  const name=document.getElementById('nc-name').value.trim();
+  if(!name) return;
+  cfgState={};
+  const cat={id:'cat'+Date.now(),name,icon,subs:[]};
+  await saveData({...db,categories:[...db.categories,cat]});
+}
+async function saveSub(catId,subId){
+  const name=document.getElementById('cs-name').value.trim();
+  const tasks=document.getElementById('cs-tasks').value.split('\n').map(t=>t.trim()).filter(Boolean);
+  if(!name) return;
+  cfgState={};
+  await saveData({...db,categories:db.categories.map(c=>{
+    if(c.id!==catId) return c;
+    return {...c,subs:c.subs.map(s=>s.id===subId?{...s,name,tasks}:s)};
+  })});
+}
+async function delSub(catId,subId){
+  if(!confirm('¿Eliminar subcategoría?')) return;
+  cfgState={};
+  await saveData({...db,categories:db.categories.map(c=>{
+    if(c.id!==catId) return c;
+    return {...c,subs:c.subs.filter(s=>s.id!==subId)};
+  })});
+}
+async function addSub(catId){
+  const name=document.getElementById('ns-name').value.trim();
+  const tasks=document.getElementById('ns-tasks').value.split('\n').map(t=>t.trim()).filter(Boolean);
+  if(!name) return;
+  cfgState={};
+  const sub={id:'sub'+Date.now(),name,tasks};
+  await saveData({...db,categories:db.categories.map(c=>{
+    if(c.id!==catId) return c;
+    return {...c,subs:[...c.subs,sub]};
+  })});
+}
+
+// ── EXPORTS ───────────────────────────────────────────────────────
+function exportCSV(){
+  const recs=[...db.records].sort((a,b)=>new Date(b.startTime)-new Date(a.startTime));
+  if(!recs.length){alert('Sin registros.');return;}
+  const hdr='Empleado,Categoría,Subcategoría,Tarea,Fecha entrada,Hora entrada,Hora salida,Horas\n';
+  const body=recs.map(r=>{
+    const dur=r.endTime?durH(r.startTime,r.endTime).toFixed(2):'';
+    return `"${r.employeeName}","${r.categoryName}","${r.subName}","${r.task}","${fmtDate(r.startTime)}","${fmtTime(r.startTime)}","${r.endTime?fmtTime(r.endTime):'activo'}","${dur}"`;
+  }).join('\n');
+  const blob=new Blob(['\uFEFF'+hdr+body],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`fichajes_${today().replace(/\//g,'-')}.csv`; a.click();
+}
+
+function exportPDF(){
+  const recs=[...db.records].sort((a,b)=>new Date(b.startTime)-new Date(a.startTime));
+  if(!recs.length){alert('Sin registros.');return;}
+  const win=window.open('','_blank');
+  const rows=recs.map(r=>{
+    const dur=r.endTime?`${durH(r.startTime,r.endTime).toFixed(1)}h`:'activo';
+    return `<tr>
+      <td>${r.employeeName}</td>
+      <td>${r.categoryIcon} ${r.categoryName} › ${r.subName}</td>
+      <td><strong>${r.task}</strong></td>
+      <td>${fmtDate(r.startTime)} ${fmtTime(r.startTime)}</td>
+      <td>${r.endTime?fmtTime(r.endTime):'—'}</td>
+      <td style="color:#b45309;font-weight:700">${dur}</td>
+    </tr>`;
+  }).join('');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Historial Fichajes</title>
+  <style>body{font-family:Arial,sans-serif;padding:28px;color:#1e293b}h1{font-size:20px;margin-bottom:4px}p{color:#64748b;font-size:13px;margin-bottom:20px}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#0f172a;color:#f1f5f9;padding:9px 10px;text-align:left}td{padding:8px 10px;border-bottom:1px solid #e2e8f0}tr:nth-child(even) td{background:#f8fafc}@media print{button{display:none!important}}</style>
+  </head><body>
+  <h1>⏱ Historial de Fichajes</h1>
+  <p>Generado el ${today()} · ${recs.length} registros</p>
+  <table><thead><tr><th>Empleado</th><th>Área</th><th>Tarea</th><th>Entrada</th><th>Salida</th><th>Horas</th></tr></thead>
+  <tbody>${rows}</tbody></table><br>
+  <button onclick="window.print()" style="padding:9px 18px;background:#0f172a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">🖨 Imprimir / Guardar PDF</button>
+  </body></html>`);
+  win.document.close();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+fetchData(true);
+setInterval(()=>fetchData(false),POLL_MS);
+</script>
+</body>
+</html>
