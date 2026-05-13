@@ -18,8 +18,8 @@
   --border:#2a2a2a;
   --border2:#333;
   --text:#ffffff;
-  --muted:#888;
-  --muted2:#555;
+  --muted:#aaa;
+  --muted2:#777;
   --accent:#ffffff;
 }
 
@@ -184,13 +184,42 @@ input::placeholder,textarea::placeholder{color:var(--muted2)}
     <div id="tab-semana" class="hidden"><div id="semana-content"></div></div>
     <div id="tab-proyectos" class="hidden"><div id="proyectos-content"></div></div>
     <div id="tab-historial" class="hidden">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:32px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px">
         <div class="section-title" style="margin-bottom:0;border-bottom:none;padding-bottom:0">Historial</div>
         <div style="display:flex;gap:12px">
           <button class="btn b-edit" onclick="exportCSV()">Exportar CSV</button>
           <button class="btn b-edit" onclick="exportPDF()">Exportar PDF</button>
         </div>
       </div>
+      <!-- FILTROS -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:32px">
+        <div style="background:var(--bg);padding:16px 20px">
+          <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Empleado</div>
+          <select id="f-emp" onchange="renderHistorial()" style="width:100%;background:#181818;border:none;border-bottom:1px solid var(--border2);color:var(--text);font-family:'Inter',sans-serif;font-size:12px;padding:4px 0;outline:none;color-scheme:dark"></select>
+        </div>
+        <div style="background:var(--bg);padding:16px 20px">
+          <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Período</div>
+          <select id="f-period" onchange="renderHistorial()" style="width:100%;background:#181818;border:none;border-bottom:1px solid var(--border2);color:var(--text);font-family:'Inter',sans-serif;font-size:12px;padding:4px 0;outline:none;color-scheme:dark">
+            <option value="all">Todo</option>
+            <option value="week">Esta semana</option>
+            <option value="month">Este mes</option>
+            <option value="custom">Personalizado</option>
+          </select>
+        </div>
+        <div style="background:var(--bg);padding:16px 20px">
+          <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Categoría</div>
+          <select id="f-cat" onchange="renderHistorial()" style="width:100%;background:#181818;border:none;border-bottom:1px solid var(--border2);color:var(--text);font-family:'Inter',sans-serif;font-size:12px;padding:4px 0;outline:none;color-scheme:dark"></select>
+        </div>
+        <div style="background:var(--bg);padding:16px 20px" id="f-custom-wrap">
+          <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Desde — Hasta</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input id="f-from" type="date" style="flex:1;font-size:11px;color-scheme:dark" onchange="renderHistorial()"/>
+            <span style="color:var(--muted2)">—</span>
+            <input id="f-to" type="date" style="flex:1;font-size:11px;color-scheme:dark" onchange="renderHistorial()"/>
+          </div>
+        </div>
+      </div>
+      <div id="hist-summary" style="margin-bottom:16px"></div>
       <div id="hist-content"></div>
     </div>
     <div id="tab-config" class="hidden"><div id="config-content"></div></div>
@@ -639,15 +668,90 @@ function renderProyectos(){
   document.getElementById('proyectos-content').innerHTML=html||'<div style="color:var(--muted);font-size:12px;letter-spacing:1px">Sin categorías.</div>';
 }
 
+function initHistorialFilters(){
+  // Empleados
+  var empSel=document.getElementById('f-emp');
+  if(!empSel) return;
+  empSel.innerHTML='<option value="all">Todos</option>'
+    +db.employees.map(function(e){return '<option value="'+e.id+'">'+e.name+'</option>';}).join('');
+  // Categorías
+  var catSel=document.getElementById('f-cat');
+  catSel.innerHTML='<option value="all">Todas</option>'
+    +db.categories.map(function(c){return '<option value="'+c.id+'">'+c.name+'</option>';}).join('');
+  // Fechas por defecto
+  var now=new Date();
+  var mon=getMonday();
+  document.getElementById('f-from').value=mon.toISOString().slice(0,10);
+  document.getElementById('f-to').value=now.toISOString().slice(0,10);
+}
+
+function getHistFilters(){
+  var empId = document.getElementById('f-emp')   ? document.getElementById('f-emp').value   : 'all';
+  var period = document.getElementById('f-period')? document.getElementById('f-period').value: 'all';
+  var catId  = document.getElementById('f-cat')  ? document.getElementById('f-cat').value   : 'all';
+  var from   = document.getElementById('f-from') ? document.getElementById('f-from').value  : '';
+  var to     = document.getElementById('f-to')   ? document.getElementById('f-to').value    : '';
+
+  // Mostrar/ocultar rango personalizado
+  var customWrap=document.getElementById('f-custom-wrap');
+  if(customWrap) customWrap.style.display = period==='custom' ? 'block' : 'none';
+
+  return {empId:empId, period:period, catId:catId, from:from, to:to};
+}
+
+function filterRecords(){
+  var f=getHistFilters();
+  var now=new Date();
+  var mon=getMonday();
+  var firstOfMonth=new Date(now.getFullYear(),now.getMonth(),1);
+
+  return db.records.filter(function(r){
+    // Filtro empleado
+    if(f.empId!=='all' && r.employeeId!==parseInt(f.empId)) return false;
+    // Filtro categoría
+    if(f.catId!=='all' && r.categoryId!==f.catId) return false;
+    // Filtro período
+    var d=new Date(r.startTime);
+    if(f.period==='week' && !inThisWeek(r.startTime)) return false;
+    if(f.period==='month' && d<firstOfMonth) return false;
+    if(f.period==='custom'){
+      if(f.from && d<new Date(f.from+'T00:00:00')) return false;
+      if(f.to   && d>new Date(f.to  +'T23:59:59')) return false;
+    }
+    return true;
+  });
+}
+
 function renderHistorial(){
-  var recs=db.records.slice().sort(function(a,b){return new Date(b.startTime)-new Date(a.startTime);});
-  if(!recs.length){document.getElementById('hist-content').innerHTML='<div style="color:var(--muted);font-size:12px;letter-spacing:1px;padding:32px 0">Sin registros todavía.</div>';return;}
+  // Inicializar filtros si aún no existen opciones
+  var empSel=document.getElementById('f-emp');
+  if(empSel && empSel.options.length<=1) initHistorialFilters();
+
+  var recs=filterRecords().sort(function(a,b){return new Date(b.startTime)-new Date(a.startTime);});
+
+  // Resumen
+  var totalH=recs.filter(function(r){return r.endTime;}).reduce(function(acc,r){return acc+durH(r.startTime,r.endTime);},0);
+  var active=recs.filter(function(r){return !r.endTime;}).length;
+  var summaryEl=document.getElementById('hist-summary');
+  if(summaryEl){
+    summaryEl.innerHTML='<div style="display:flex;gap:32px;padding:16px 0;border-bottom:1px solid var(--border);margin-bottom:16px">'
+      +'<div><div style="font-size:11px;color:var(--muted);letter-spacing:1px">Registros</div><div style="font-size:22px;font-weight:300">'+recs.length+'</div></div>'
+      +'<div><div style="font-size:11px;color:var(--muted);letter-spacing:1px">Horas totales</div><div style="font-size:22px;font-weight:300">'+totalH.toFixed(1)+'h</div></div>'
+      +(active?'<div><div style="font-size:11px;color:var(--muted);letter-spacing:1px">Activos</div><div style="font-size:22px;font-weight:300;color:#4ade80">'+active+'</div></div>':'')
+      +'</div>';
+  }
+
+  if(!recs.length){
+    document.getElementById('hist-content').innerHTML='<div style="color:var(--muted);font-size:12px;letter-spacing:1px;padding:32px 0">Sin registros para los filtros seleccionados.</div>';
+    return;
+  }
   var cols='1.5fr 2fr 1fr 80px';
   var rows=recs.map(function(r){
     var dur=r.endTime?durH(r.startTime,r.endTime).toFixed(1)+'h':'Activo';
     var durColor=r.endTime?'var(--text)':'#4ade80';
+    var manual=r.manual?'<span style="font-size:9px;color:var(--muted2);letter-spacing:1px;margin-left:6px">MANUAL</span>':'';
     return '<div class="tbl-row" style="grid-template-columns:'+cols+'">'
-          +'<span style="font-size:13px">'+r.employeeName+'</span>'
+          +'<span style="font-size:13px">'+r.employeeName+manual+'</span>'
           +'<span style="font-size:12px;color:var(--muted)">'+r.categoryName+' / '+r.subName+' / '+r.task+'</span>'
           +'<span style="font-size:11px;color:var(--muted2)">'+fmtDate(r.startTime)+(r.endTime?' · '+fmtTime(r.startTime):' · en curso')+'</span>'
           +'<span style="font-size:13px;color:'+durColor+';text-align:right">'+dur+'</span>'
